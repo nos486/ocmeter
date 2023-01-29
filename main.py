@@ -1,10 +1,10 @@
 import psutil
 import time
 import os
-import subprocess
 import pandas as pd
+from datetime import datetime
 
-UPDATE_DELAY = 10
+UPDATE_DELAY = 30
 
 
 def get_size(bytes):
@@ -14,17 +14,31 @@ def get_size(bytes):
         bytes /= 1024
 
 
+def get_time_string(timestamp):
+    if timestamp == 0:
+        return "-"
+    else:
+        return datetime.fromtimestamp(timestamp)
+
+
+def get_users():
+    users = {}
+    for user in psutil.users():
+        users["name"] = {
+            "name": user.name,
+            "interface": user.terminal,
+            "host": user.host,
+            "started": user.started
+        }
+
+    return users
+
+
 io = psutil.net_io_counters(pernic=True)
 
 while True:
     time.sleep(UPDATE_DELAY)
-
-    userList = {}
-    for userData in subprocess.check_output("who", shell=True).decode("utf-8").split("\n"):
-        if userData != "":
-            user = userData.split()[0]
-            int = userData.split()[1]
-            userList[int] = user
+    userList = get_users()
 
     io_2 = psutil.net_io_counters(pernic=True)
     data = []
@@ -33,17 +47,21 @@ while True:
         if iface in io_2.keys():
             upload_speed, download_speed = io_2[iface].bytes_sent - iface_io.bytes_sent, io_2[iface].bytes_recv - iface_io.bytes_recv
             if iface in userList.keys():
-                ifaceName = userList[iface]
+                ifaceName = userList[iface]["interface"]
                 ifDownload = io_2[iface].bytes_sent
                 ifUpload = io_2[iface].bytes_recv
                 ifDownloadSpeed = upload_speed / UPDATE_DELAY
                 ifUploadSpeed = download_speed / UPDATE_DELAY
+                host = userList[iface]["host"]
+                started = userList[iface]["started"]
             else:
                 ifaceName = iface
                 ifDownload = io_2[iface].bytes_recv
                 ifUpload = io_2[iface].bytes_sent
                 ifDownloadSpeed = download_speed / UPDATE_DELAY
                 ifUploadSpeed = upload_speed / UPDATE_DELAY
+                host = "local"
+                started = 0
 
             isExist = False
             for row in data:
@@ -53,6 +71,10 @@ while True:
                     row["Upload"] += ifUpload
                     row["Download Speed"] += ifDownloadSpeed
                     row["Upload Speed"] += ifUploadSpeed
+                    row["Hosts"] += ", " + host
+                    if row["Started"] < started:
+                        row["Started"] = started
+
                     isExist = True
                     pass
             if not isExist:
@@ -63,6 +85,8 @@ while True:
                     "Upload": ifUpload,
                     "Download Speed": ifDownloadSpeed,
                     "Upload Speed": ifUploadSpeed,
+                    "Hosts": host,
+                    "Started": started
                 })
 
     io = io_2
@@ -72,6 +96,7 @@ while True:
     df["Upload"] = df["Upload"].apply(lambda x: get_size(x))
     df["Download Speed"] = df["Download Speed"].apply(lambda x: get_size(x))
     df["Upload Speed"] = df["Upload Speed"].apply(lambda x: get_size(x))
+    df["Started"] = df["Started"].apply(lambda x: get_time_string(x))
 
     os.system("clear")
     print(df.to_string())

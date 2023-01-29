@@ -27,7 +27,7 @@ def get_users():
         users[user.terminal] = {
             "name": user.name,
             "interface": user.terminal,
-            "host": user.host,
+            "host": user.host.replace("::ffff:", ""),  # for ipv4 display
             "started": user.started
         }
 
@@ -73,7 +73,7 @@ while True:
                     row["Upload"] += ifUpload
                     row["Download Speed"] += ifDownloadSpeed
                     row["Upload Speed"] += ifUploadSpeed
-                    row["Hosts"] += "\r\n" + host
+                    row["Hosts"] += " " + host
                     if row["Started"] < started:
                         row["Started"] = started
 

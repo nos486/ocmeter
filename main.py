@@ -103,4 +103,4 @@ while True:
     df["Started"] = df["Started"].apply(lambda x: get_time_string(x))
 
     os.system("clear")
-    print(df.to_string())
+    print(df.to_string(index=False))

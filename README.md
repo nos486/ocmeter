@@ -1,4 +1,4 @@
-# OCServ Meter
+# OC Meter
 Open connect Server Interfaces(Users) Speed Meter
 
 <img src="screenshot_1.png">

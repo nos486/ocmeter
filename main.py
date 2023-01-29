@@ -24,7 +24,7 @@ def get_time_string(timestamp):
 def get_users():
     users = {}
     for user in psutil.users():
-        users["name"] = {
+        users[user.name] = {
             "name": user.name,
             "interface": user.terminal,
             "host": user.host,

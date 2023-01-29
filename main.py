@@ -73,7 +73,7 @@ while True:
                     row["Upload"] += ifUpload
                     row["Download Speed"] += ifDownloadSpeed
                     row["Upload Speed"] += ifUploadSpeed
-                    row["Hosts"] += ", " + host
+                    row["Hosts"] += "\r\n" + host
                     if row["Started"] < started:
                         row["Started"] = started
 

@@ -4,7 +4,7 @@ import os
 import pandas as pd
 from datetime import datetime
 
-UPDATE_DELAY = 5
+UPDATE_DELAY = 15
 
 
 def get_size(bytes):
@@ -73,7 +73,7 @@ while True:
                     row["Upload"] += ifUpload
                     row["Download Speed"] += ifDownloadSpeed
                     row["Upload Speed"] += ifUploadSpeed
-                    row["Hosts"] += " " + host
+                    row["Hosts"] += ",  " + host
                     if row["Started"] < started:
                         row["Started"] = started
 

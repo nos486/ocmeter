@@ -4,7 +4,7 @@ import os
 import pandas as pd
 from datetime import datetime
 
-UPDATE_DELAY = 30
+UPDATE_DELAY = 5
 
 
 def get_size(bytes):
@@ -47,7 +47,8 @@ while True:
         if iface in io_2.keys():
             upload_speed, download_speed = io_2[iface].bytes_sent - iface_io.bytes_sent, io_2[iface].bytes_recv - iface_io.bytes_recv
             if iface in userList.keys():
-                ifaceName = userList[iface]["interface"]
+                user = userList[iface]["name"]
+                iface = userList[iface]["interface"]
                 ifDownload = io_2[iface].bytes_sent
                 ifUpload = io_2[iface].bytes_recv
                 ifDownloadSpeed = upload_speed / UPDATE_DELAY
@@ -55,7 +56,8 @@ while True:
                 host = userList[iface]["host"]
                 started = userList[iface]["started"]
             else:
-                ifaceName = iface
+                user = "-"
+                iface = iface
                 ifDownload = io_2[iface].bytes_recv
                 ifUpload = io_2[iface].bytes_sent
                 ifDownloadSpeed = download_speed / UPDATE_DELAY
@@ -65,7 +67,7 @@ while True:
 
             isExist = False
             for row in data:
-                if row["iface"] == ifaceName:
+                if row["iface"] == iface:
                     row["Connection"] += 1
                     row["Download"] += ifDownload
                     row["Upload"] += ifUpload
@@ -79,7 +81,8 @@ while True:
                     pass
             if not isExist:
                 data.append({
-                    "iface": ifaceName,
+                    "user": user,
+                    "iface": iface,
                     "Connection": 1,
                     "Download": ifDownload,
                     "Upload": ifUpload,

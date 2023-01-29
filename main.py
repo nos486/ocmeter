@@ -67,7 +67,7 @@ while True:
 
             isExist = False
             for row in data:
-                if row["iface"] == iface:
+                if row["user"] == user:
                     row["Connection"] += 1
                     row["Download"] += ifDownload
                     row["Upload"] += ifUpload

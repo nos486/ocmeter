@@ -1,17 +1,9 @@
 import psutil
 import time
-import os
-import pandas as pd
+import json
 from datetime import datetime
 
-UPDATE_DELAY = 15
-
-
-def get_size(bytes):
-    for unit in ['', 'K', 'M', 'G', 'T', 'P']:
-        if bytes < 1024:
-            return f"{bytes:.2f}{unit}B"
-        bytes /= 1024
+UPDATE_DELAY = 10
 
 
 def get_time_string(timestamp):
@@ -23,11 +15,12 @@ def get_time_string(timestamp):
 
 def get_users():
     users = {}
+
     for user in psutil.users():
         users[user.terminal] = {
             "name": user.name,
             "interface": user.terminal,
-            "host": user.host.replace("::ffff:", ""),  # for ipv4 display
+            "host": user.host.replace("::ffff:", "") if user.host != None else "",  # for ipv4 display
             "started": user.started
         }
 
@@ -37,7 +30,6 @@ def get_users():
 io = psutil.net_io_counters(pernic=True)
 
 while True:
-    time.sleep(UPDATE_DELAY)
     userList = get_users()
 
     io_2 = psutil.net_io_counters(pernic=True)
@@ -68,39 +60,71 @@ while True:
             isExist = False
             for row in data:
                 if row["user"] == user:
-                    row["Connection"] += 1
-                    row["Download"] += ifDownload
-                    row["Upload"] += ifUpload
-                    row["Download Speed"] += ifDownloadSpeed
-                    row["Upload Speed"] += ifUploadSpeed
-                    if host not in row["Hosts"].split(", "):
-                        row["Hosts"] += ", " + host
-                    if row["Started"] < started:
-                        row["Started"] = started
-
+                    row["connection"] += 1
+                    row["download"] += ifDownload
+                    row["upload"] += ifUpload
+                    row["download_speed"] += ifDownloadSpeed
+                    row["upload_speed"] += ifUploadSpeed
+                    if host not in row["hosts"].split(", "):
+                        row["hosts"] += ", " + host
+                    if row["started"] < started:
+                        row["started"] = started
                     isExist = True
                     pass
             if not isExist:
                 data.append({
                     "user": user,
                     "iface": iface,
-                    "Connection": 1,
-                    "Download": ifDownload,
-                    "Upload": ifUpload,
-                    "Download Speed": ifDownloadSpeed,
-                    "Upload Speed": ifUploadSpeed,
-                    "Hosts": host,
-                    "Started": started
+                    "connection": 1,
+                    "download": ifDownload,
+                    "upload": ifUpload,
+                    "download_speed": ifDownloadSpeed,
+                    "upload_speed": ifUploadSpeed,
+                    "hosts": host,
+                    "started": started,
                 })
 
     io = io_2
-    df = pd.DataFrame(data)
-    df.sort_values("Download Speed", inplace=True, ascending=False)
-    df["Download"] = df["Download"].apply(lambda x: get_size(x))
-    df["Upload"] = df["Upload"].apply(lambda x: get_size(x))
-    df["Download Speed"] = df["Download Speed"].apply(lambda x: get_size(x))
-    df["Upload Speed"] = df["Upload Speed"].apply(lambda x: get_size(x))
-    df["Started"] = df["Started"].apply(lambda x: get_time_string(x))
 
-    os.system("clear")
-    print(df.to_string(index=False))
+    db = open("db.txt", "r")
+    db_data = db.read().replace("\'", "\"")
+    if db_data == "":
+        db_data = "{}"
+    loaded_data = json.loads(db_data)
+    db.close()
+
+    db = open("db.txt", "w")
+    db_json = {}
+
+    for user in loaded_data.keys():
+        user_exist = False
+        for j in data:
+            if user == j["user"]:
+                user_exist = True
+                if loaded_data[user]["connected"] != "True":
+                    loaded_data[user]["connected"] = "True"
+                    loaded_data[user]["back_online"] = "True"
+                    loaded_data[user]["last_connection"] = ""
+        if not user_exist:
+            loaded_data[user]["connected"] = "False"
+            loaded_data[user]["last_connection"] = str(datetime.now())
+            loaded_data[user]["back_online"] = "False"
+
+    for row in data:
+        if row["user"] in loaded_data:
+            if loaded_data[row["user"]]["back_online"] == "True":
+                loaded_data[row["user"]]["download"] = row["download"] + loaded_data[row["user"]]["download"]
+                loaded_data[row["user"]]["upload"] = row["upload"] + loaded_data[row["user"]]["upload"]
+
+                loaded_data[row["user"]]["back_online"] = "False"
+            else:
+                loaded_data[row["user"]]["download"] = row["download"]
+                loaded_data[row["user"]]["upload"] = row["upload"]
+        else:
+            loaded_data[row["user"]] = {"user": row["user"], "download": row["download"], "upload": row["upload"], "connected": "True", "back_online": "False", "last_connection": ""}
+
+    old_loaded_data = loaded_data
+    db.write(str(loaded_data))
+    db.close()
+
+    time.sleep(UPDATE_DELAY)

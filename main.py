@@ -30,6 +30,8 @@ def get_users():
 io = psutil.net_io_counters(pernic=True)
 
 while True:
+    time.sleep(UPDATE_DELAY)
+
     userList = get_users()
 
     io_2 = psutil.net_io_counters(pernic=True)
@@ -127,4 +129,3 @@ while True:
     db.write(str(loaded_data))
     db.close()
 
-    time.sleep(UPDATE_DELAY)
